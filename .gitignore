@@ -1,0 +1,10 @@
+.DS_Store
+.build/
+build/
+dist/
+*.app
+*.xcodeproj
+DerivedData/
+.swiftpm/
+/tmp/
+Lingo.app/

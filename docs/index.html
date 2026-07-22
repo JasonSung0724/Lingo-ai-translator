@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lingo — Free macOS Menu Bar Translator (Offline + AI)</title>
+  <meta name="description" content="Lingo is a free, open-source macOS menu-bar translator. Select text anywhere and translate instantly with a hotkey — offline on-device, or AI-powered via your own Claude / ChatGPT CLI. OCR screenshots, translate-and-replace, no API keys, no tracking.">
+  <meta property="og:title" content="Lingo — Free macOS Menu Bar Translator (Offline + AI)">
+  <meta property="og:description" content="Select text anywhere on your Mac and translate it instantly. Offline on-device translation or AI via your own Claude / ChatGPT CLI. Open source, no API keys, no tracking.">
+  <meta property="og:image" content="https://jasonsung0724.github.io/Lingo-ai-translator/icon.png">
+  <meta property="og:type" content="website">
+  <meta property="og:url" content="https://jasonsung0724.github.io/Lingo-ai-translator/">
+  <link rel="icon" href="icon.png">
+  <style>
+    :root { color-scheme: light dark; --accent: #2f6fed; --fg: #1d1d1f; --bg: #ffffff; --muted: #6e6e73; --card: #f5f5f7; }
+    @media (prefers-color-scheme: dark) { :root { --fg: #f5f5f7; --bg: #101014; --muted: #98989d; --card: #1c1c21; } }
+    * { box-sizing: border-box; margin: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: var(--fg); background: var(--bg); line-height: 1.6; }
+    .wrap { max-width: 860px; margin: 0 auto; padding: 0 24px; }
+    header { text-align: center; padding: 72px 0 40px; }
+    header img { width: 108px; height: 108px; border-radius: 24px; }
+    h1 { font-size: 44px; margin: 18px 0 6px; letter-spacing: -0.5px; }
+    .tagline { font-size: 20px; color: var(--muted); max-width: 560px; margin: 0 auto; }
+    .cta { margin: 30px 0 8px; display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn { display: inline-block; padding: 12px 26px; border-radius: 12px; text-decoration: none; font-weight: 600; font-size: 16px; }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-secondary { background: var(--card); color: var(--fg); }
+    .small { font-size: 13px; color: var(--muted); }
+    section { padding: 36px 0; }
+    h2 { font-size: 26px; margin-bottom: 18px; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+    .card { background: var(--card); border-radius: 14px; padding: 18px; }
+    .card h3 { font-size: 16px; margin-bottom: 6px; }
+    .card p { font-size: 14px; color: var(--muted); }
+    kbd { background: var(--card); border-radius: 6px; padding: 2px 7px; font-family: ui-monospace, monospace; font-size: 13px; border: 1px solid rgba(128,128,128,.25); }
+    pre { background: var(--card); border-radius: 12px; padding: 14px 18px; overflow-x: auto; font-size: 14px; }
+    table { width: 100%; border-collapse: collapse; font-size: 15px; }
+    td { padding: 8px 6px; border-bottom: 1px solid rgba(128,128,128,.15); }
+    footer { text-align: center; padding: 44px 0 56px; color: var(--muted); font-size: 14px; }
+    a { color: var(--accent); }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <img src="icon.png" alt="Lingo app icon">
+      <h1>Lingo</h1>
+      <p class="tagline">Select text anywhere on your Mac. Press a hotkey. Read it in your language.</p>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/JasonSung0724/Lingo-ai-translator/releases/latest/download/Lingo.dmg">Download for macOS</a>
+        <a class="btn btn-secondary" href="https://github.com/JasonSung0724/Lingo-ai-translator">View on GitHub</a>
+      </div>
+      <p class="small">Free &amp; open source (MIT) · macOS 15+ · Apple Silicon &amp; Intel · auto-updates</p>
+    </header>
+
+    <section>
+      <h2>Why Lingo</h2>
+      <div class="grid">
+        <div class="card"><h3>⚡ Instant, anywhere</h3><p>Global hotkeys translate the text you've selected in any app — browser, editor, chat, PDF.</p></div>
+        <div class="card"><h3>🔒 Offline &amp; private</h3><p>On-device Apple translation works with no account, no network, no tracking. Nothing is logged.</p></div>
+        <div class="card"><h3>🤖 AI when you want it</h3><p>Higher-quality AI translation through the Claude or ChatGPT CLI you already pay for. No API keys stored, ever.</p></div>
+        <div class="card"><h3>📷 Screenshot OCR</h3><p>Capture any part of the screen and translate the text inside it — menus, images, videos.</p></div>
+        <div class="card"><h3>✍️ Translate &amp; replace</h3><p>Rewrite the selected text in place — draft in your language, send in theirs.</p></div>
+        <div class="card"><h3>📚 Explain &amp; learn</h3><p>An AI tutor panel explains words and phrases with examples — and it can read images too.</p></div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Install</h2>
+      <p><strong>Download:</strong> grab <a href="https://github.com/JasonSung0724/Lingo-ai-translator/releases/latest/download/Lingo.dmg">Lingo.dmg</a>, drag to Applications. (Unnotarized: first launch needs System Settings → Privacy &amp; Security → “Open Anyway”.)</p>
+      <p style="margin-top:10px"><strong>Homebrew:</strong></p>
+      <pre>brew tap JasonSung0724/tap
+brew install --cask --no-quarantine lingo-ai-translator</pre>
+      <p style="margin-top:10px"><strong>One-liner</strong> (installs, clears quarantine, launches):</p>
+      <pre>/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/JasonSung0724/Lingo-ai-translator/main/scripts/install.sh)"</pre>
+    </section>
+
+    <section>
+      <h2>Default hotkeys</h2>
+      <table>
+        <tr><td>Translate selection</td><td><kbd>⇧⌘T</kbd></td></tr>
+        <tr><td>Quick popup at the selection</td><td><kbd>⇧⌘P</kbd></td></tr>
+        <tr><td>Translate screenshot (OCR)</td><td><kbd>⇧⌘O</kbd></td></tr>
+        <tr><td>Translate &amp; replace in place</td><td><kbd>⇧⌘R</kbd></td></tr>
+        <tr><td>Explain selection</td><td><kbd>⇧⌘E</kbd></td></tr>
+        <tr><td>Open translator window</td><td><kbd>⇧⌘L</kbd></td></tr>
+      </table>
+      <p class="small" style="margin-top:8px">All rebindable. A first-run guide walks you through permissions and setup.</p>
+    </section>
+
+    <section>
+      <h2>Privacy</h2>
+      <p>Offline mode never touches the network. AI mode shells out to the CLI you installed and signed into — Lingo stores no API keys and sends nothing anywhere else. No analytics, no telemetry, MIT-licensed source you can read.</p>
+    </section>
+
+    <footer>
+      MIT License · © 2026 <a href="https://github.com/JasonSung0724">Jason Sung</a> ·
+      <a href="https://github.com/JasonSung0724/Lingo-ai-translator">Source on GitHub</a>
+    </footer>
+  </div>
+</body>
+</html>

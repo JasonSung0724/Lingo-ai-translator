@@ -1,0 +1,143 @@
+name: Release
+
+# Push to main with a new CFBundleShortVersionString in Info.plist and this
+# workflow tags, builds, and publishes the release automatically. Pushes that
+# don't change the version are skipped.
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+env:
+  SPARKLE_VERSION: "2.9.4"
+
+jobs:
+  release:
+    runs-on: macos-15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check whether this version is already released
+        id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          VERSION="$(/usr/libexec/PlistBuddy -c 'Print :CFBundleShortVersionString' Info.plist)"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          STATE="$(gh release view "v$VERSION" --json isDraft --jq .isDraft 2>/dev/null || echo missing)"
+          if [ "$STATE" = "false" ]; then
+            echo "v$VERSION already released — nothing to do."
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            # A leftover draft means a previous run died mid-publish: retry cleanly.
+            if [ "$STATE" = "true" ]; then gh release delete "v$VERSION" --yes; fi
+            echo "v$VERSION is new — releasing."
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Stamp CFBundleVersion
+        if: steps.version.outputs.new == 'true'
+        run: |
+          /usr/libexec/PlistBuddy -c "Set :CFBundleVersion ${{ steps.version.outputs.version }}" Info.plist
+          # Mark this as an official build — Sparkle auto-updates only run in
+          # stamped releases, so from-source builds never fight the feed.
+          /usr/libexec/PlistBuddy -c "Add :LingoOfficialBuild bool true" Info.plist 2>/dev/null \
+            || /usr/libexec/PlistBuddy -c "Set :LingoOfficialBuild true" Info.plist
+
+      # Sign with the stable "Lingo Self-Signed" identity instead of ad-hoc:
+      # ad-hoc CDHashes change every build, so macOS dropped the Accessibility /
+      # Screen Recording grants on every update. A constant certificate keeps the
+      # designated requirement stable and grants persist across updates.
+      - name: Import stable signing certificate
+        if: steps.version.outputs.new == 'true'
+        env:
+          CERT_P12: ${{ secrets.LINGO_SIGNING_CERT_P12 }}
+          CERT_PASS: ${{ secrets.LINGO_SIGNING_CERT_PASSWORD }}
+        run: |
+          if [ -z "$CERT_P12" ] || [ -z "$CERT_PASS" ]; then
+            echo "❌ LINGO_SIGNING_CERT_P12 / LINGO_SIGNING_CERT_PASSWORD secrets missing — refusing to ship an ad-hoc build." >&2
+            exit 1
+          fi
+          echo "$CERT_P12" | base64 -d > cert.p12
+          security create-keychain -p ci build.keychain
+          security set-keychain-settings -lut 21600 build.keychain
+          security unlock-keychain -p ci build.keychain
+          security list-keychains -d user -s build.keychain
+          security import cert.p12 -k build.keychain -P "$CERT_PASS" -T /usr/bin/codesign
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k ci build.keychain > /dev/null
+          openssl pkcs12 -in cert.p12 -clcerts -nokeys -passin "pass:$CERT_PASS" -legacy -out cert.pem 2>/dev/null \
+            || openssl pkcs12 -in cert.p12 -clcerts -nokeys -passin "pass:$CERT_PASS" -out cert.pem
+          sudo security add-trusted-cert -d -r trustRoot -p codeSign -k /Library/Keychains/System.keychain cert.pem
+          rm -f cert.p12 cert.pem
+          security find-identity -v -p codesigning | grep -q "Lingo Self-Signed" || {
+            echo "❌ 'Lingo Self-Signed' identity is not valid after import." >&2
+            exit 1
+          }
+
+      - name: Build universal Lingo.zip and Lingo.dmg
+        if: steps.version.outputs.new == 'true'
+        run: UNIVERSAL=1 bash scripts/release.sh
+
+      - name: Verify stable signature
+        if: steps.version.outputs.new == 'true'
+        run: |
+          ditto -x -k dist/Lingo.zip /tmp/sigcheck
+          REQ="$(codesign --display -r- /tmp/sigcheck/Lingo.app 2>&1)"
+          echo "$REQ"
+          echo "$REQ" | grep -q "certificate leaf" || {
+            echo "❌ Release app is ad-hoc signed (no certificate leaf in designated requirement) — TCC grants would break on every update." >&2
+            exit 1
+          }
+
+      - name: Generate signed Sparkle appcast
+        if: steps.version.outputs.new == 'true'
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: |
+          if [ -z "$SPARKLE_ED_PRIVATE_KEY" ]; then
+            echo "❌ SPARKLE_ED_PRIVATE_KEY secret is missing — clients could never verify the update." >&2
+            exit 1
+          fi
+          curl -fsSL -o sparkle.tar.xz \
+            "https://github.com/sparkle-project/Sparkle/releases/download/${SPARKLE_VERSION}/Sparkle-${SPARKLE_VERSION}.tar.xz"
+          mkdir sparkle-tools && tar -xJf sparkle.tar.xz -C sparkle-tools
+          printf '%s' "$SPARKLE_ED_PRIVATE_KEY" > ed_key
+          mkdir appcast && cp dist/Lingo.zip appcast/
+          ./sparkle-tools/bin/generate_appcast \
+            --ed-key-file ed_key \
+            --download-url-prefix "https://github.com/${GITHUB_REPOSITORY}/releases/download/v${{ steps.version.outputs.version }}/" \
+            --link "https://github.com/${GITHUB_REPOSITORY}" \
+            appcast
+          rm ed_key
+          grep -q 'sparkle:edSignature' appcast/appcast.xml || {
+            echo "❌ appcast.xml has no EdDSA signature — existing installs would reject the update." >&2
+            exit 1
+          }
+          cp appcast/appcast.xml dist/
+
+      - name: Publish GitHub Release (draft → verify assets → publish)
+        if: steps.version.outputs.new == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          V="v${{ steps.version.outputs.version }}"
+          gh release create "$V" \
+            dist/Lingo.zip dist/Lingo.dmg dist/appcast.xml \
+            --draft \
+            --target "$GITHUB_SHA" \
+            --title "Lingo $V" \
+            --generate-notes
+          COUNT="$(gh release view "$V" --json assets --jq '.assets | length')"
+          if [ "$COUNT" != "3" ]; then
+            echo "❌ Expected 3 assets, found $COUNT — leaving the release as a draft." >&2
+            exit 1
+          fi
+          gh release edit "$V" --draft=false
+          echo "✓ $V published with verified assets."
